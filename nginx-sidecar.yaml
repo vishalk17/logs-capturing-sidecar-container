@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-with-sidecar
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx-with-sidecar
+  template:
+    metadata:
+      labels:
+        app: nginx-with-sidecar
+    spec:
+      initContainers:
+      - name: create-log-directory
+        image: busybox:latest
+        command: ["sh", "-c", "mkdir -p /var/custom && touch /var/custom/app-custom.log"]
+        volumeMounts:
+        - name: log-volume
+          mountPath: /var/custom
+      containers:
+      - name: nginx
+        image: nginx:latest
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: log-volume
+          mountPath: /var/custom
+      - name: log-tailer
+        image: busybox:latest
+        # Command to prepend 'vishal-app' prefix to each line of the log file
+        command: ["sh", "-c", "tail -n +1 -F /var/custom/app-custom.log | awk '{print \"vishal-app\", $0}'"]
+        volumeMounts:
+        - name: log-volume
+          mountPath: /var/custom
+      volumes:
+      - name: log-volume
+        emptyDir: {}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-service
+spec:
+  selector:
+    app: nginx-with-sidecar  # This should match the labels in your Deployment
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+  type: ClusterIP  # You can change this to NodePort or LoadBalancer based on your requirements
