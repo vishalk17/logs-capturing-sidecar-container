@@ -32,12 +32,18 @@ spec:
               tail -n +1 -F /var/custom/app3-custom.log | awk '{print "vishal-app", $0}' &
               tail -n +1 -F /var/custom/app4-custom.log | awk '{print "xyz-app", $0}' &
               tail -n +1 -F /var/custom/app5-custom.log | awk '{print "xyz-app", $0}' &
+              tail -n +1 -F /var/vishal/vishal-custom.log | awk '{print "vishal-custom-app", $0}' &
+              tail -n +1 -F /var/vishal/vishal-custom.log | awk '{print "vishal-custom-app", $0}' &
             ) | cat
         volumeMounts:
         - name: log-volume
           mountPath: /var/custom
+        - name: log-vishal
+          mountPath: /var/vishal
       volumes:
       - name: log-volume
+        emptyDir: {}
+      - name: log-vishal
         emptyDir: {}
 
 ---
