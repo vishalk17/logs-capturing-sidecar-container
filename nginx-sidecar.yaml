@@ -12,21 +12,6 @@ spec:
       labels:
         app: nginx-with-sidecar
     spec:
-      # Init Containers
-      initContainers:
-      - name: create-log-directory
-        image: busybox:latest
-        command:
-          - sh
-          - "-c"
-          - |
-            # Create directory for custom log file
-            mkdir -p /var/custom && \
-            touch /var/custom/app-custom.log
-        volumeMounts:
-        - name: log-volume
-          mountPath: /var/custom
-      # Main Containers
       containers:
       - name: nginx
         image: nginx:latest
@@ -38,12 +23,16 @@ spec:
       - name: log-tailer
         image: busybox:latest
         command:
-          - sh
+          - "sh"
           - "-c"
-          - |
-            # Tail and prepend 'vishal-app' to each line of the log file
-            tail -n +1 -F /var/custom/app-custom.log | \
-            awk '{print "vishal-app", $0}'
+          - >
+            (
+              tail -n +1 -F /var/custom/app1-custom.log | awk '{print "vishal-app", $0}' &
+              tail -n +1 -F /var/custom/app2-custom.log | awk '{print "vishal-app", $0}' &
+              tail -n +1 -F /var/custom/app3-custom.log | awk '{print "vishal-app", $0}' &
+              tail -n +1 -F /var/custom/app4-custom.log | awk '{print "xyz-app", $0}' &
+              tail -n +1 -F /var/custom/app5-custom.log | awk '{print "xyz-app", $0}' &
+            ) | cat
         volumeMounts:
         - name: log-volume
           mountPath: /var/custom
@@ -52,16 +41,15 @@ spec:
         emptyDir: {}
 
 ---
-# Service
 apiVersion: v1
 kind: Service
 metadata:
   name: nginx-service
 spec:
   selector:
-    app: nginx-with-sidecar  # This should match the labels in your Deployment
+    app: nginx-with-sidecar
   ports:
     - protocol: TCP
       port: 80
       targetPort: 80
-  type: ClusterIP  # You can change this to NodePort or LoadBalancer based on your requirements
+  type: ClusterIP
