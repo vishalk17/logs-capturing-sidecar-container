@@ -12,39 +12,56 @@ spec:
       labels:
         app: nginx-with-sidecar
     spec:
+      initContainers:
+        - name: init-log-directory
+          image: busybox:latest
+          command:
+            - "sh"
+            - "-c"
+            - >
+              mkdir -p /var/custom \
+                       /var/vishal && \
+              touch /var/custom/app1-custom.log \
+                    /var/custom/app2-custom.log \
+                    /var/custom/app3-custom.log \
+                    /var/vishal/vishal-custom.log
+          volumeMounts:
+            - name: log-volume
+              mountPath: /var/custom
+            - name: log-vishal
+              mountPath: /var/vishal
       containers:
-      - name: nginx
-        image: nginx:latest
-        ports:
-        - containerPort: 80
-        volumeMounts:
-        - name: log-volume
-          mountPath: /var/custom
-      - name: log-tailer
-        image: busybox:latest
-        command:
-          - "sh"
-          - "-c"
-          - >
-            (
-              tail -n +1 -F /var/custom/app1-custom.log | awk '{print "vishal-app", $0}' &
-              tail -n +1 -F /var/custom/app2-custom.log | awk '{print "vishal-app", $0}' &
-              tail -n +1 -F /var/custom/app3-custom.log | awk '{print "vishal-app", $0}' &
-              tail -n +1 -F /var/custom/app4-custom.log | awk '{print "xyz-app", $0}' &
-              tail -n +1 -F /var/custom/app5-custom.log | awk '{print "xyz-app", $0}' &
-              tail -n +1 -F /var/vishal/vishal-custom.log | awk '{print "vishal-custom-app", $0}' &
-              tail -n +1 -F /var/vishal/vishal-custom.log | awk '{print "vishal-custom-app", $0}' &
-            ) | cat
-        volumeMounts:
-        - name: log-volume
-          mountPath: /var/custom
-        - name: log-vishal
-          mountPath: /var/vishal
+        - name: nginx
+          image: nginx:latest
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: log-volume
+              mountPath: /var/custom
+            - name: log-vishal
+              mountPath: /var/vishal
+        - name: log-tailer
+          image: busybox:latest
+          command:
+            - "sh"
+            - "-c"
+            - >
+              (
+                tail -n +1 -F /var/custom/app1-custom.log | awk '{print "vishal-app", $0}' &
+                tail -n +1 -F /var/custom/app2-custom.log | awk '{print "vishal-app", $0}' &
+                tail -n +1 -F /var/custom/app3-custom.log | awk '{print "vishal-app", $0}' &
+                tail -n +1 -F /var/vishal/vishal-custom.log | awk '{print "vishal-custom-app", $0}' &
+              ) | cat
+          volumeMounts:
+            - name: log-volume
+              mountPath: /var/custom
+            - name: log-vishal
+              mountPath: /var/vishal
       volumes:
-      - name: log-volume
-        emptyDir: {}
-      - name: log-vishal
-        emptyDir: {}
+        - name: log-volume
+          emptyDir: {}
+        - name: log-vishal
+          emptyDir: {}
 
 ---
 apiVersion: v1
