@@ -12,13 +12,21 @@ spec:
       labels:
         app: nginx-with-sidecar
     spec:
+      # Init Containers
       initContainers:
       - name: create-log-directory
         image: busybox:latest
-        command: ["sh", "-c", "mkdir -p /var/custom && touch /var/custom/app-custom.log"]
+        command:
+          - sh
+          - "-c"
+          - |
+            # Create directory for custom log file
+            mkdir -p /var/custom && \
+            touch /var/custom/app-custom.log
         volumeMounts:
         - name: log-volume
           mountPath: /var/custom
+      # Main Containers
       containers:
       - name: nginx
         image: nginx:latest
@@ -29,8 +37,13 @@ spec:
           mountPath: /var/custom
       - name: log-tailer
         image: busybox:latest
-        # Command to prepend 'vishal-app' prefix to each line of the log file
-        command: ["sh", "-c", "tail -n +1 -F /var/custom/app-custom.log | awk '{print \"vishal-app\", $0}'"]
+        command:
+          - sh
+          - "-c"
+          - |
+            # Tail and prepend 'vishal-app' to each line of the log file
+            tail -n +1 -F /var/custom/app-custom.log | \
+            awk '{print "vishal-app", $0}'
         volumeMounts:
         - name: log-volume
           mountPath: /var/custom
@@ -39,6 +52,7 @@ spec:
         emptyDir: {}
 
 ---
+# Service
 apiVersion: v1
 kind: Service
 metadata:
